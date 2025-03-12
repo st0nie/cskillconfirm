@@ -12,8 +12,8 @@ use gsi_cs2::Body;
 use tokio::signal;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tracing;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -21,12 +21,17 @@ struct Args {
     /// sound preset to use (available: "varolant")
     #[arg(short, long, default_value = "varolant")]
     preset: String,
+
+    ///
+    #[arg(short, long, default_value = "1.0")]
+    volume: f32,
 }
 
 struct AppState {
     ply_name: String,
     ply_kills: u16,
     preset: String,
+    volume: f32,
 }
 
 async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>) {
@@ -55,6 +60,7 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
     {
         let sound_num = if current_kills > 5 { 5 } else { current_kills };
         let preset = app_state.preset.to_string();
+        let volume = app_state.volume;
 
         thread::spawn(move || {
             let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
@@ -63,7 +69,7 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
 
             let sink = rodio::Sink::try_new(&stream_handle).unwrap();
             sink.append(source);
-            sink.set_volume(0.3);
+            sink.set_volume(volume);
             sink.play();
             sink.sleep_until_end();
         });
@@ -119,6 +125,7 @@ async fn main() {
         ply_name: "".to_string(),
         ply_kills: 0,
         preset: args.preset,
+        volume: args.volume,
     }));
 
     let app = Router::new()
