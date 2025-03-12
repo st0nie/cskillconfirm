@@ -20,5 +20,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           RUSTTARGET: ${{ matrix.target }}
-          EXTRA_FILES: "README.md LICENSE sounds"
+          EXTRA_FILES: "README.md LICENSE"
           TOOLCHAIN_VERSION: "nightly"
