@@ -32,4 +32,3 @@ This tool helps you confirm your Counter-Strike 2 kills.
 If you're experiencing issues:
 - Verify that the `sounds` directory is in the same folder as the executable
 - Check that the GSI configuration file is in the correct CS2 directory
-- Make sure CS2 is running before starting the application
