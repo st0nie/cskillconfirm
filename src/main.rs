@@ -3,11 +3,17 @@ use std::{
     io::BufReader,
     sync::{Arc, Mutex},
     thread,
+    time::Duration,
 };
 
 use axum::{extract::State, routing::post, Json, Router};
 use clap::Parser;
 use gsi_cs2::Body;
+use tokio::signal;
+use tower_http::timeout::TimeoutLayer;
+use tower_http::trace::TraceLayer;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -24,7 +30,6 @@ struct AppState {
 }
 
 async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>) {
-    print!("\x1B[2J\x1B[1;1H"); //clear
     let map = data.map.as_ref();
     if let None = map {
         return;
@@ -46,9 +51,6 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
     let current_name = player.name.as_ref().unwrap();
     let original_name = &app_state.ply_name;
 
-    println!("Kills: {}", current_kills);
-    println!("Name: {}", current_name);
-
     if current_kills == original_kills + 1 && (current_name == original_name || original_name == "")
     {
         let sound_num = if current_kills > 5 { 5 } else { current_kills };
@@ -65,17 +67,53 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
             sink.play();
             sink.sleep_until_end();
         });
+        tracing::info!("player:{} kills:{}", current_name, current_kills);
     }
 
     app_state.ply_kills = current_kills;
     app_state.ply_name = current_name.to_string();
 }
 
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
 
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                format!(
+                    "{}=debug,tower_http=debug,axum=trace",
+                    env!("CARGO_CRATE_NAME")
+                )
+                .into()
+            }),
+        )
+        .with(tracing_subscriber::fmt::layer().without_time())
+        .init();
 
     let app_state = Arc::new(Mutex::new(AppState {
         ply_name: "".to_string(),
@@ -85,11 +123,20 @@ async fn main() {
 
     let app = Router::new()
         .route("/", post(update))
-        .with_state(app_state.clone());
+        .with_state(app_state.clone())
+        .layer((
+            TraceLayer::new_for_http(),
+            // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
+            // requests don't hang forever.
+            TimeoutLayer::new(Duration::from_secs(10)),
+        ));
 
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .unwrap();
 }

@@ -9,5 +9,7 @@ clap = { version = "4.5.32", features = ["derive"] }
 gsi-cs2 = "0.1.1"
 rodio = "0.20.1"
 serde_json = "1.0.87"
-tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros"] }
-tracing-subscriber = { version = "0.3.16" }
+tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros", "full"] }
+tower-http = { version = "0.6.2", features = ["timeout", "trace"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
