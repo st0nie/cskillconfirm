@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 axum = "0.8.1"
+clap = { version = "4.5.32", features = ["derive"] }
 gsi-cs2 = "0.1.1"
 rodio = "0.20.1"
 serde_json = "1.0.87"
