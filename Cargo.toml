@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 axum = "0.8.1"
 clap = { version = "4.5.32", features = ["derive"] }
-gsi-cs2 = "0.1.1"
+gsi-cs2 = { git = "https://github.com/st0nie/gsi-cs2-rs.git" }
 rodio = "0.20.1"
 serde_json = "1.0.87"
 tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros", "full"] }

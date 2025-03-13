@@ -492,8 +492,7 @@ checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 [[package]]
 name = "gsi-cs2"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "786c3d0155db1abce03b719758135a8dcd427782a4766691dcba71109da96601"
+source = "git+https://github.com/st0nie/gsi-cs2-rs.git#3f9efbf9963ebaa7f1e9598caefb1c580012a965"
 dependencies = [
  "serde",
 ]
