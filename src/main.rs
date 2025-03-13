@@ -12,7 +12,7 @@ use gsi_cs2::Body;
 use tokio::signal;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
-use tracing;
+use tracing::{self, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Parser, Debug)]
@@ -53,6 +53,8 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
     let current_kills = state.round_kills;
     let original_kills = app_state.ply_kills;
 
+    let current_hs_kills = state.round_killhs;
+
     let current_name = player.name.as_ref().unwrap();
     let original_name = &app_state.ply_name;
 
@@ -64,16 +66,36 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
 
         thread::spawn(move || {
             let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
-            let file = File::open(format!("sounds/{}/{}.mp3", preset, sound_num)).unwrap();
+            let (controller, mixer) = rodio::dynamic_mixer::mixer::<i16>(2, 44100);
+            let sink = rodio::Sink::try_new(&stream_handle).unwrap();
+            let file: File;
+
+            if preset == "crossfire" {
+                file = File::open(format!("sounds/{}/common.mp3", preset)).unwrap();
+                if current_hs_kills == 1 && current_kills == 1 {
+                    let file_hs = File::open(format!("sounds/{}/headshot.mp3", preset)).unwrap();
+                    let source_hs = rodio::Decoder::new(BufReader::new(file_hs)).unwrap();
+                    controller.add(source_hs);
+                } else if current_kills != 1 {
+                    let file_voice =
+                        File::open(format!("sounds/{}/{}.mp3", preset, sound_num)).unwrap();
+                    let source_voice = rodio::Decoder::new(BufReader::new(file_voice)).unwrap();
+                    controller.add(source_voice);
+                }
+            } else {
+                file = File::open(format!("sounds/{}/{}.mp3", preset, sound_num)).unwrap();
+            }
+            // let file = File::open(format!("sounds/{}/{}.mp3", preset, sound_num)).unwrap();
             let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
 
-            let sink = rodio::Sink::try_new(&stream_handle).unwrap();
-            sink.append(source);
+            controller.add(source);
+
+            sink.append(mixer);
             sink.set_volume(volume);
             sink.play();
             sink.sleep_until_end();
         });
-        tracing::info!("player:{} kills:{}", current_name, current_kills);
+        info!("player:{} kills:{}", current_name, current_kills);
     }
 
     app_state.ply_kills = current_kills;
