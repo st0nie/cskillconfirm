@@ -71,21 +71,21 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
             let file: File;
 
             if preset == "crossfire" {
-                file = File::open(format!("sounds/{}/common.mp3", preset)).unwrap();
+                file = File::open(format!("sounds/{}/common.wav", preset)).unwrap();
                 if current_hs_kills == 1 && current_kills == 1 {
-                    let file_hs = File::open(format!("sounds/{}/headshot.mp3", preset)).unwrap();
+                    let file_hs = File::open(format!("sounds/{}/headshot.wav", preset)).unwrap();
                     let source_hs = rodio::Decoder::new(BufReader::new(file_hs)).unwrap();
                     controller.add(source_hs);
                 } else if current_kills != 1 {
                     let file_voice =
-                        File::open(format!("sounds/{}/{}.mp3", preset, sound_num)).unwrap();
+                        File::open(format!("sounds/{}/{}.wav", preset, sound_num)).unwrap();
                     let source_voice = rodio::Decoder::new(BufReader::new(file_voice)).unwrap();
                     controller.add(source_voice);
                 }
             } else {
-                file = File::open(format!("sounds/{}/{}.mp3", preset, sound_num)).unwrap();
+                file = File::open(format!("sounds/{}/{}.wav", preset, sound_num)).unwrap();
             }
-            // let file = File::open(format!("sounds/{}/{}.mp3", preset, sound_num)).unwrap();
+            // let file = File::open(format!("sounds/{}/{}.wav", preset, sound_num)).unwrap();
             let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
 
             controller.add(source);
