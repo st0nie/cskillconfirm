@@ -492,7 +492,7 @@ checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 [[package]]
 name = "gsi-cs2"
 version = "0.1.1"
-source = "git+https://github.com/st0nie/gsi-cs2-rs.git#e82653d16227647f5328c74724ed873ab90712c7"
+source = "git+https://github.com/st0nie/gsi-cs2-rs.git#022f7ef05c1bd0c02ff92c177dc9f833710c85fa"
 dependencies = [
  "serde",
 ]
