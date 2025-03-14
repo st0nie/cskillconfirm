@@ -18,7 +18,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// sound preset to use (available: "varolant")
+    /// sound preset to use (available: "varolant", "crossfire")
     #[arg(short, long, default_value = "varolant")]
     preset: String,
 
@@ -76,7 +76,7 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
                     let file_hs = File::open(format!("sounds/{}/headshot.wav", preset)).unwrap();
                     let source_hs = rodio::Decoder::new(BufReader::new(file_hs)).unwrap();
                     controller.add(source_hs);
-                } else if current_kills != 1 {
+                } else if current_kills > 1 && current_kills < 6 {
                     let file_voice =
                         File::open(format!("sounds/{}/{}.wav", preset, sound_num)).unwrap();
                     let source_voice = rodio::Decoder::new(BufReader::new(file_voice)).unwrap();
