@@ -25,10 +25,10 @@ struct Args {
     /// sound preset to use (available: "varolant", "crossfire")
     #[arg(short, long, default_value = "varolant")]
     preset: String,
-    /// output device to use (run the app once to see available devices)
+    /// select output device
     #[arg(short, long, default_value = "default")]
     device: String,
-    ///
+    /// 
     #[arg(short, long, default_value = "1.0")]
     volume: f32,
 }
@@ -97,7 +97,7 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
 
     let current_name = player.name.as_ref().unwrap();
     let original_name = &app_state.ply_name;
-
+    
     if current_kills > original_kills && (current_name == original_name || original_name == "") {
         let sound_num = if current_kills > 5 { 5 } else { current_kills };
         let preset = app_state.preset.to_string();
