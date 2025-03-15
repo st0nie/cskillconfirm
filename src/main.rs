@@ -95,7 +95,7 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
     let current_name = player.name.as_ref().unwrap();
     let original_name = &app_state.ply_name;
 
-    if current_kills == original_kills + 1 && (current_name == original_name || original_name == "")
+    if current_kills > original_kills && (current_name == original_name || original_name == "")
     {
         let sound_num = if current_kills > 5 { 5 } else { current_kills };
         let preset = app_state.preset.to_string();
