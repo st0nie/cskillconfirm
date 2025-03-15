@@ -31,14 +31,16 @@ struct Args {
     /// 
     #[arg(short, long, default_value = "1.0")]
     volume: f32,
+    /// disable voice for some presets
+    #[arg(short, long, default_value = "false")]
+    no_voice: bool,
 }
 
 struct AppState {
     ply_name: String,
     ply_kills: u16,
-    preset: String,
-    volume: f32,
     stream_handle: Arc<OutputStreamHandle>,
+    args: Arc<Args>,
 }
 // Function to list available host devices
 fn list_host_devices() {
@@ -100,8 +102,12 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
     
     if current_kills > original_kills && (current_name == original_name || original_name == "") {
         let sound_num = if current_kills > 5 { 5 } else { current_kills };
-        let preset = app_state.preset.to_string();
-        let volume = app_state.volume;
+
+        let args = app_state.args.clone();
+
+        let preset = args.preset.to_string();
+        let volume = args.volume;
+
         let stream_handle = app_state.stream_handle.clone();
         thread::spawn(move || {
             let (controller, mixer) = rodio::dynamic_mixer::mixer::<i16>(2, 44100);
@@ -114,7 +120,7 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
                     let file_hs = File::open(format!("sounds/{}/headshot.wav", preset)).unwrap();
                     let source_hs = rodio::Decoder::new(BufReader::new(file_hs)).unwrap();
                     controller.add(source_hs);
-                } else if current_kills > 1 && current_kills < 6 {
+                } else if !args.no_voice && current_kills > 1 && current_kills < 6 {
                     let file_voice =
                         File::open(format!("sounds/{}/{}.wav", preset, sound_num)).unwrap();
                     let source_voice = rodio::Decoder::new(BufReader::new(file_voice)).unwrap();
@@ -192,9 +198,8 @@ async fn main() {
     let app_state = Arc::new(Mutex::new(AppState {
         ply_name: "".to_string(),
         ply_kills: 0,
-        preset: args.preset,
-        volume: args.volume,
         stream_handle: Arc::new(output_stream.1),
+        args: Arc::new(args),
     }));
 
     let app = Router::new()
