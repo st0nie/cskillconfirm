@@ -23,7 +23,7 @@ struct Args {
     #[arg(short, long, default_value = "false")]
     list_devices: bool,
     /// sound preset to use (available: "varolant", "crossfire")
-    #[arg(short, long, default_value = "varolant")]
+    #[arg(short, long, default_value = "crossfire")]
     preset: String,
     /// select output device
     #[arg(short, long, default_value = "default")]
