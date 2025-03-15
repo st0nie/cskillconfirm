@@ -1,3 +1,8 @@
+use axum::{extract::State, routing::post, Json, Router};
+use clap::Parser;
+use cpal::traits::{DeviceTrait, HostTrait};
+use gsi_cs2::Body;
+use rodio::{OutputStream, OutputStreamHandle};
 use std::{
     fs::File,
     io::BufReader,
@@ -5,10 +10,6 @@ use std::{
     thread,
     time::Duration,
 };
-
-use axum::{extract::State, routing::post, Json, Router};
-use clap::Parser;
-use gsi_cs2::Body;
 use tokio::signal;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
@@ -21,7 +22,9 @@ struct Args {
     /// sound preset to use (available: "varolant", "crossfire")
     #[arg(short, long, default_value = "varolant")]
     preset: String,
-
+    /// output device to use (run the app once to see available devices)
+    #[arg(short, long, default_value = "default")]
+    device: String,
     ///
     #[arg(short, long, default_value = "1.0")]
     volume: f32,
@@ -32,8 +35,40 @@ struct AppState {
     ply_kills: u16,
     preset: String,
     volume: f32,
+    stream_handle: Arc<OutputStreamHandle>,
+}
+// Function to list available host devices
+fn list_host_devices() {
+    let host = cpal::default_host();
+    let devices = host.output_devices().unwrap();
+    for device in devices {
+        let dev: rodio::Device = device.into();
+        let dev_name: String = dev.name().unwrap();
+        println!(" # Device : {}", dev_name);
+    }
 }
 
+// Get an `OutputStream` and `OutputStreamHandle` for a specific device
+fn get_output_stream(device_name: &str) -> (OutputStream, OutputStreamHandle) {
+    println!("Searching for device: {}", device_name);
+    if device_name == "default" {
+        println!("device parameter not set, using default.");
+        return OutputStream::try_default().unwrap();
+    }
+    let host = cpal::default_host();
+    let devices = host.output_devices().unwrap();
+    for device in devices {
+        let dev: rodio::Device = device.into();
+        let dev_name: String = dev.name().unwrap();
+        if dev_name == device_name {
+            println!("Device found: {}", dev_name);
+            return OutputStream::try_from_device(&dev).unwrap();
+        }
+    }
+    // If the specified device is not found, fall back to the default
+    println!("Device not found, using default output device.");
+    OutputStream::try_default().unwrap()
+}
 async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>) {
     let map = data.map.as_ref();
     if let None = map {
@@ -63,9 +98,8 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
         let sound_num = if current_kills > 5 { 5 } else { current_kills };
         let preset = app_state.preset.to_string();
         let volume = app_state.volume;
-
+        let stream_handle = app_state.stream_handle.clone();
         thread::spawn(move || {
-            let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
             let (controller, mixer) = rodio::dynamic_mixer::mixer::<i16>(2, 44100);
             let sink = rodio::Sink::try_new(&stream_handle).unwrap();
             let file: File;
@@ -142,12 +176,17 @@ async fn main() {
         )
         .with(tracing_subscriber::fmt::layer().without_time())
         .init();
+    // list devices here
+    list_host_devices();
+    // initialize the specified audio device
+    let output_stream = get_output_stream(&args.device);
 
     let app_state = Arc::new(Mutex::new(AppState {
         ply_name: "".to_string(),
         ply_kills: 0,
         preset: args.preset,
         volume: args.volume,
+        stream_handle: Arc::new(output_stream.1),
     }));
 
     let app = Router::new()

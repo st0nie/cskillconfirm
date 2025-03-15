@@ -393,6 +393,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "clap",
+ "cpal",
  "gsi-cs2",
  "rodio",
  "serde_json",
