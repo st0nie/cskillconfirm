@@ -13,12 +13,15 @@ use std::{
 use tokio::signal;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
-use tracing::{self, info};
+use tracing::{self, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// list all available audio devices
+    #[arg(short, long, default_value = "false")]
+    list_devices: bool,
     /// sound preset to use (available: "varolant", "crossfire")
     #[arg(short, long, default_value = "varolant")]
     preset: String,
@@ -41,17 +44,17 @@ struct AppState {
 fn list_host_devices() {
     let host = cpal::default_host();
     let devices = host.output_devices().unwrap();
+    info!("Available output devices:");
     for device in devices {
         let dev: rodio::Device = device.into();
         let dev_name: String = dev.name().unwrap();
-        println!(" # Device : {}", dev_name);
+        info!("{}", dev_name);
     }
 }
 
 // Get an `OutputStream` and `OutputStreamHandle` for a specific device
 fn get_output_stream(device_name: &str) -> (OutputStream, OutputStreamHandle) {
     if device_name == "default" {
-        println!("--device parameter not set, using default.");
         return OutputStream::try_default().unwrap();
     }
     let host = cpal::default_host();
@@ -60,12 +63,12 @@ fn get_output_stream(device_name: &str) -> (OutputStream, OutputStreamHandle) {
         let dev: rodio::Device = device.into();
         let dev_name: String = dev.name().unwrap();
         if dev_name == device_name {
-            println!("Device found: {}", dev_name);
+            info!("Using device: {}", dev_name);
             return OutputStream::try_from_device(&dev).unwrap();
         }
     }
     // If the specified device is not found, fall back to the default
-    println!(
+    warn!(
         "Specified device {} not found, using default output device.",
         device_name
     );
@@ -95,8 +98,7 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
     let current_name = player.name.as_ref().unwrap();
     let original_name = &app_state.ply_name;
 
-    if current_kills > original_kills && (current_name == original_name || original_name == "")
-    {
+    if current_kills > original_kills && (current_name == original_name || original_name == "") {
         let sound_num = if current_kills > 5 { 5 } else { current_kills };
         let preset = app_state.preset.to_string();
         let volume = app_state.volume;
@@ -164,8 +166,6 @@ async fn shutdown_signal() {
 
 #[tokio::main]
 async fn main() {
-    let args = Args::parse();
-
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
@@ -178,8 +178,14 @@ async fn main() {
         )
         .with(tracing_subscriber::fmt::layer().without_time())
         .init();
-    // list devices here
-    list_host_devices();
+
+    let args = Args::parse();
+
+    if args.list_devices {
+        list_host_devices();
+        return;
+    }
+
     // initialize the specified audio device
     let output_stream = get_output_stream(&args.device);
 
@@ -193,7 +199,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", post(update))
-        .with_state(app_state.clone())
+        .with_state(app_state)
         .layer((
             TraceLayer::new_for_http(),
             // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
