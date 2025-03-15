@@ -28,7 +28,7 @@ struct Args {
     /// select output device
     #[arg(short, long, default_value = "default")]
     device: String,
-    /// 
+    ///
     #[arg(short, long, default_value = "1.0")]
     volume: f32,
     /// disable voice for some presets
@@ -99,7 +99,7 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
 
     let current_name = player.name.as_ref().unwrap();
     let original_name = &app_state.ply_name;
-    
+
     if current_kills > original_kills && (current_name == original_name || original_name == "") {
         let sound_num = if current_kills > 5 { 5 } else { current_kills };
 
@@ -116,15 +116,19 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
 
             if preset == "crossfire" {
                 file = File::open(format!("sounds/{}/common.wav", preset)).unwrap();
-                if current_hs_kills == 1 && current_kills == 1 {
-                    let file_hs = File::open(format!("sounds/{}/headshot.wav", preset)).unwrap();
-                    let source_hs = rodio::Decoder::new(BufReader::new(file_hs)).unwrap();
-                    controller.add(source_hs);
-                } else if !args.no_voice && current_kills > 1 && current_kills < 6 {
-                    let file_voice =
-                        File::open(format!("sounds/{}/{}.wav", preset, sound_num)).unwrap();
-                    let source_voice = rodio::Decoder::new(BufReader::new(file_voice)).unwrap();
-                    controller.add(source_voice);
+
+                if !args.no_voice {
+                    if current_hs_kills == 1 && current_kills == 1 {
+                        let file_hs =
+                            File::open(format!("sounds/{}/headshot.wav", preset)).unwrap();
+                        let source_hs = rodio::Decoder::new(BufReader::new(file_hs)).unwrap();
+                        controller.add(source_hs);
+                    } else if current_kills > 1 && current_kills < 6 {
+                        let file_voice =
+                            File::open(format!("sounds/{}/{}.wav", preset, sound_num)).unwrap();
+                        let source_voice = rodio::Decoder::new(BufReader::new(file_voice)).unwrap();
+                        controller.add(source_voice);
+                    }
                 }
             } else {
                 file = File::open(format!("sounds/{}/{}.wav", preset, sound_num)).unwrap();
