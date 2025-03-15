@@ -50,9 +50,8 @@ fn list_host_devices() {
 
 // Get an `OutputStream` and `OutputStreamHandle` for a specific device
 fn get_output_stream(device_name: &str) -> (OutputStream, OutputStreamHandle) {
-    println!("Searching for device: {}", device_name);
     if device_name == "default" {
-        println!("device parameter not set, using default.");
+        println!("--device parameter not set, using default.");
         return OutputStream::try_default().unwrap();
     }
     let host = cpal::default_host();
@@ -66,7 +65,10 @@ fn get_output_stream(device_name: &str) -> (OutputStream, OutputStreamHandle) {
         }
     }
     // If the specified device is not found, fall back to the default
-    println!("Device not found, using default output device.");
+    println!(
+        "Specified device {} not found, using default output device.",
+        device_name
+    );
     OutputStream::try_default().unwrap()
 }
 async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>) {
