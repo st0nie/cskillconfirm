@@ -34,6 +34,9 @@ struct Args {
     /// disable voice for some presets
     #[arg(short, long, default_value = "false")]
     no_voice: bool,
+    /// use variant of sound preset
+    #[arg(long)]
+    variant: Option<String>,
 }
 
 struct AppState {
@@ -101,9 +104,19 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
     let original_name = &app_state.ply_name;
 
     if current_kills > original_kills && (current_name == original_name || original_name == "") {
-        let sound_num = if current_kills > 5 { 5 } else { current_kills };
-
         let args = app_state.args.clone();
+        let sound_num_max;
+
+        sound_num_max = match args.preset.as_str() {
+            "crossfire" => 8,
+            _ => 5,
+        };
+
+        let sound_num = if current_kills > sound_num_max {
+            sound_num_max
+        } else {
+            current_kills
+        };
 
         let preset = args.preset.to_string();
         let volume = args.volume;
@@ -117,15 +130,24 @@ async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>)
             if preset == "crossfire" {
                 file = File::open(format!("sounds/{}/common.wav", preset)).unwrap();
 
+                let headshot_path: String;
+                let voice_path: String;
+
+                if let Some(variant) = &args.variant {
+                    headshot_path = format!("sounds/{}_v_{}/headshot.wav", preset, variant);
+                    voice_path = format!("sounds/{}_v_{}/{}.wav", preset, variant, sound_num);
+                } else {
+                    headshot_path = format!("sounds/{}/headshot.wav", preset);
+                    voice_path = format!("sounds/{}/{}.wav", preset, sound_num);
+                }
+
                 if !args.no_voice {
                     if current_hs_kills == 1 && current_kills == 1 {
-                        let file_hs =
-                            File::open(format!("sounds/{}/headshot.wav", preset)).unwrap();
+                        let file_hs = File::open(headshot_path).unwrap();
                         let source_hs = rodio::Decoder::new(BufReader::new(file_hs)).unwrap();
                         controller.add(source_hs);
-                    } else if current_kills > 1 && current_kills < 6 {
-                        let file_voice =
-                            File::open(format!("sounds/{}/{}.wav", preset, sound_num)).unwrap();
+                    } else if current_kills > 1 && current_kills <= 8 {
+                        let file_voice = File::open(voice_path).unwrap();
                         let source_voice = rodio::Decoder::new(BufReader::new(file_voice)).unwrap();
                         controller.add(source_voice);
                     }
