@@ -18,17 +18,17 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
         return;
     }
 
-    let player = player_data.unwrap();
-    let state = player.state.as_ref().unwrap();
+    let ply = player_data.unwrap();
+    let ply_state = ply.state.as_ref().unwrap();
 
     let mut app_state = app_state.lock().await;
 
-    let current_kills = state.round_kills;
+    let current_kills = ply_state.round_kills;
     let original_kills = app_state.ply_kills;
 
-    let current_hs_kills = state.round_killhs;
+    let current_hs_kills = ply_state.round_killhs;
 
-    let current_name = player.name.as_ref().unwrap();
+    let current_name = if let Some(name) = &ply.name { name } else { "" };
     let original_name = &app_state.ply_name;
 
     if current_kills > original_kills && (current_name == original_name || original_name == "") {
