@@ -1,4 +1,4 @@
-use std::{fs::File, io::BufReader, sync::Arc, thread};
+use std::{fs::File, io::BufReader, sync::Arc};
 
 use axum::{extract::State, Json};
 use gsi_cs2::Body;
@@ -48,7 +48,7 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
         let volume = args.volume;
 
         let stream_handle = app_state.stream_handle.clone();
-        thread::spawn(move || {
+        tokio::spawn(async move {
             let (controller, mixer) = rodio::dynamic_mixer::mixer::<i16>(2, 44100);
             let sink = rodio::Sink::try_new(&stream_handle).unwrap();
 
@@ -58,7 +58,8 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
                 controller.add(source);
             }
 
-            if preset.has_headshot && current_hs_kills == 1 && !args.no_voice {
+            if preset.has_headshot && !args.no_voice && current_hs_kills == 1 && current_kills == 1
+            {
                 let file = if preset.has_variant && args.variant.is_some() {
                     File::open(format!(
                         "sounds/{}_v_{}/headshot.wav",
