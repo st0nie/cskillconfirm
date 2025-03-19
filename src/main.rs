@@ -8,14 +8,14 @@ use soundpack::preset;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
-use tracing::error;
+use tracing::{error, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use utils::args::Args;
 use utils::playback::{get_output_stream, list_host_devices};
 
-use utils::handler::{shutdown_signal, update};
 use soundpack::preset::Preset;
+use utils::handler::{shutdown_signal, update};
 
 struct AppState {
     ply_name: String,
@@ -50,9 +50,12 @@ async fn main() {
     // initialize the specified audio device
     let output_stream = get_output_stream(&args.device);
     let preset = preset::parse_from_name(&args.preset).unwrap_or_else(|e| {
-        error!("failed to parse preset \'{}\': {}", &args.preset, e);
+        error!("failed to parse preset '{}': {}", &args.preset, e);
         std::process::exit(1);
     });
+    info!("preset '{}' loaded successfully", &args.preset);
+    info!("{:?}", preset);
+    info!("variant: {}", args.variant.as_deref().unwrap_or("none"));
 
     let app_state = Arc::new(Mutex::new(AppState {
         ply_name: "".to_string(),
