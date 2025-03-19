@@ -32,8 +32,8 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
     let original_name = &app_state.ply_name;
 
     if current_kills > original_kills && (current_name == original_name || original_name == "") {
-        let args = app_state.args.clone();
-        let preset = app_state.preset.clone();
+        let args = app_state.args.to_owned();
+        let preset = app_state.preset.to_owned();
         let sound_num_max;
 
         sound_num_max = preset.end;
