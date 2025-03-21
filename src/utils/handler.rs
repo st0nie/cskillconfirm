@@ -52,7 +52,12 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
             let (controller, mixer) = rodio::dynamic_mixer::mixer::<i16>(2, 44100);
             let sink = rodio::Sink::try_new(&stream_handle).unwrap();
 
-            if preset.has_common {
+            if preset.has_common_headshot && current_hs_kills == 1 {
+                let file =
+                    File::open(format!("sounds/{}/common_headshot.wav", preset_name)).unwrap();
+                let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
+                controller.add(source);
+            } else if preset.has_common {
                 let file = File::open(format!("sounds/{}/common.wav", preset_name)).unwrap();
                 let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
                 controller.add(source);

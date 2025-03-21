@@ -6,8 +6,9 @@ use std::fs;
 pub struct Preset {
     pub has_variant: bool,
     pub has_voice: bool,
-    pub has_headshot: bool,
     pub has_common: bool,
+    pub has_headshot: bool,
+    pub has_common_headshot: bool,
     pub start: u16,
     pub end: u16,
 }
