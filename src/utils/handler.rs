@@ -52,31 +52,30 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
             let (controller, mixer) = rodio::dynamic_mixer::mixer::<i16>(2, 44100);
             let sink = rodio::Sink::try_new(&stream_handle).unwrap();
 
+            let add_file_to_mixer = |file_name: &str| {
+                let file = File::open(file_name).unwrap();
+                let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
+                controller.add(source);
+            };
+
             if preset.has_common_headshot && current_hs_kills == 1 {
-                let file =
-                    File::open(format!("sounds/{}/common_headshot.wav", preset_name)).unwrap();
-                let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
-                controller.add(source);
+                add_file_to_mixer(&format!("sounds/{}/common_headshot.wav", preset_name));
             } else if preset.has_common {
-                let file = File::open(format!("sounds/{}/common.wav", preset_name)).unwrap();
-                let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
-                controller.add(source);
+                add_file_to_mixer(&format!("sounds/{}/common.wav", preset_name));
             }
 
             if preset.has_headshot && !args.no_voice && current_hs_kills == 1 && current_kills == 1
             {
-                let file = if preset.has_variant && args.variant.is_some() {
-                    File::open(format!(
+                let file_path = if preset.has_variant && args.variant.is_some() {
+                    format!(
                         "sounds/{}_v_{}/headshot.wav",
                         preset_name,
-                        args.variant.as_ref().unwrap(),
-                    ))
-                    .unwrap()
+                        args.variant.as_ref().unwrap()
+                    )
                 } else {
-                    File::open(format!("sounds/{}/headshot.wav", preset_name)).unwrap()
+                    format!("sounds/{}/headshot.wav", preset_name)
                 };
-                let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
-                controller.add(source);
+                add_file_to_mixer(&file_path);
             }
 
             if preset.has_voice
@@ -85,19 +84,17 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
                 && current_kills <= sound_num_max
                 || !preset.has_common
             {
-                let file = if preset.has_variant && args.variant.is_some() {
-                    File::open(format!(
+                let file_path = if preset.has_variant && args.variant.is_some() {
+                    format!(
                         "sounds/{}_v_{}/{}.wav",
                         preset_name,
                         args.variant.as_ref().unwrap(),
                         sound_num
-                    ))
-                    .unwrap()
+                    )
                 } else {
-                    File::open(format!("sounds/{}/{}.wav", preset_name, sound_num)).unwrap()
+                    format!("sounds/{}/{}.wav", preset_name, sound_num)
                 };
-                let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
-                controller.add(source);
+                add_file_to_mixer(&file_path);
             }
 
             sink.append(mixer);
