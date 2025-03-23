@@ -25,7 +25,7 @@ This tool helps you confirm your Counter-Strike 2 kills.
 
 2. Launch CS2 with the GSI configuration in place.
 
-3. The tool will now provide varolant-like kill confirmations while you play.
+3. The tool will now provide crossfire-like kill confirmations while you play.
 
 ## Troubleshooting
 
