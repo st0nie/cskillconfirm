@@ -20,6 +20,7 @@ use utils::handler::{shutdown_signal, update};
 struct AppState {
     ply_name: String,
     ply_kills: u16,
+    ply_hs_kills: u64,
     stream_handle: OutputStreamHandle,
     args: Args,
     preset: Preset,
@@ -60,6 +61,7 @@ async fn main() {
     let app_state = Arc::new(Mutex::new(AppState {
         ply_name: "".into(),
         ply_kills: 0,
+        ply_hs_kills: 0,
         stream_handle: output_stream.1,
         args,
         preset,

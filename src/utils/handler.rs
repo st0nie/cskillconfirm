@@ -26,6 +26,7 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
     let current_kills = ply_state.round_kills;
     let original_kills = app_state.ply_kills;
 
+    let origin_hs_kills = app_state.ply_hs_kills;
     let current_hs_kills = ply_state.round_killhs;
 
     let current_name = if let Some(name) = &ply.name { name } else { "" };
@@ -58,7 +59,7 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
                 controller.add(source);
             };
 
-            if preset.has_common_headshot && current_hs_kills == 1 {
+            if preset.has_common_headshot && current_hs_kills > origin_hs_kills {
                 add_file_to_mixer(&format!("sounds/{}/common_headshot.wav", preset_name));
             } else if preset.has_common {
                 add_file_to_mixer(&format!("sounds/{}/common.wav", preset_name));
@@ -106,6 +107,7 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
     }
 
     app_state.ply_kills = current_kills;
+    app_state.ply_hs_kills = current_hs_kills;
     app_state.ply_name = current_name.to_string();
 }
 
