@@ -1,10 +1,9 @@
 mod soundpack;
 mod utils;
 
-use axum::{routing::post, Router};
+use axum::{Router, routing::post};
 use clap::Parser;
 use rodio::OutputStreamHandle;
-use soundpack::preset;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
@@ -50,7 +49,7 @@ async fn main() {
 
     // initialize the specified audio device
     let output_stream = get_output_stream(&args.device);
-    let preset = preset::parse_from_name(&args.preset).unwrap_or_else(|e| {
+    let preset = Preset::try_from(args.preset.as_ref()).unwrap_or_else(|e| {
         error!("failed to parse preset '{}': {}", &args.preset, e);
         std::process::exit(1);
     });

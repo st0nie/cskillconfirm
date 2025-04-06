@@ -1,4 +1,5 @@
 use anyhow::Result;
+use std::convert::TryFrom;
 use serde::{Deserialize, Serialize};
 use std::fs;
 
@@ -13,8 +14,12 @@ pub struct Preset {
     pub end: u16,
 }
 
-pub fn parse_from_name(preset_name: &str) -> Result<Preset> {
-    let content = fs::read_to_string(format!("sounds/{}/info.json", preset_name))?;
-    let preset: Preset = serde_json::from_str(&content)?;
-    Ok(preset)
+impl TryFrom<&str> for Preset {
+    type Error = anyhow::Error;
+
+    fn try_from(preset_name: &str) -> Result<Self> {
+        let content = fs::read_to_string(format!("sounds/{}/info.json", preset_name))?;
+        let preset: Preset = serde_json::from_str(&content)?;
+        Ok(preset)
+    }
 }
