@@ -5,7 +5,7 @@ pub struct Args {
     /// list all available audio devices
     #[arg(short, long, default_value = "false")]
     pub list_devices: bool,
-    /// sound preset to use (available: "valorant", "crossfire", "bf1")
+    /// sound preset to use (available: "valorant", "crossfire", "bf1", "bf1_special")
     #[arg(short, long, default_value = "crossfire")]
     pub preset: String,
     /// select output device
