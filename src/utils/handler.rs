@@ -9,12 +9,9 @@ use crate::AppState;
 
 pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>) {
     let map = data.map.as_ref();
-    if let None = map {
-        return;
-    }
-
     let player_data = data.player.as_ref();
-    if let None = player_data {
+
+    if map.is_none() || player_data.is_none() {
         return;
     }
 
