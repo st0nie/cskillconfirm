@@ -17,7 +17,7 @@ use soundpack::preset::Preset;
 use utils::handler::{shutdown_signal, update};
 
 struct AppState {
-    ply_name: String,
+    steamid: String,
     ply_kills: u16,
     ply_hs_kills: u64,
     stream_handle: OutputStreamHandle,
@@ -58,7 +58,7 @@ async fn main() {
     info!("variant: {}", args.variant.as_deref().unwrap_or("none"));
 
     let app_state = Arc::new(Mutex::new(AppState {
-        ply_name: "".into(),
+        steamid: "".into(),
         ply_kills: 0,
         ply_hs_kills: 0,
         stream_handle: output_stream.1,

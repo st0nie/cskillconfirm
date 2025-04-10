@@ -26,10 +26,10 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
     let origin_hs_kills = app_state.ply_hs_kills;
     let current_hs_kills = ply_state.round_killhs;
 
-    let current_name = if let Some(name) = &ply.name { name } else { "" };
-    let original_name = &app_state.ply_name;
+    let steamid = if let Some(name) = &ply.steam_id { name } else { "" };
+    let original_steamid = &app_state.steamid;
 
-    if current_kills > original_kills && (current_name == original_name || original_name == "") {
+    if current_kills > original_kills && (steamid == original_steamid || original_steamid == "") {
         let args = app_state.args.to_owned();
         let preset = app_state.preset.to_owned();
         let sound_num_max;
@@ -100,12 +100,12 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
             sink.play();
             sink.sleep_until_end();
         });
-        info!("player:{} kills:{}", current_name, current_kills);
+        info!("player:{} kills:{}", steamid, current_kills);
     }
 
     app_state.ply_kills = current_kills;
     app_state.ply_hs_kills = current_hs_kills;
-    app_state.ply_name = current_name.to_string();
+    app_state.steamid = steamid.to_string();
 }
 
 pub async fn shutdown_signal() {
