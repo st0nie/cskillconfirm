@@ -1,5 +1,5 @@
 mod soundpack;
-mod utils;
+mod util;
 
 use axum::{Router, routing::post};
 use clap::Parser;
@@ -10,11 +10,11 @@ use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
 use tracing::{error, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use utils::args::Args;
-use utils::playback::{get_output_stream, list_host_devices};
+use util::Args;
+use util::playback::{get_output_stream, list_host_devices};
 
-use soundpack::preset::Preset;
-use utils::handler::{shutdown_signal, update};
+use soundpack::Preset;
+use util::handler::{shutdown_signal, update};
 
 struct AppState {
     steamid: String,
