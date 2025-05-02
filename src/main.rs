@@ -8,6 +8,8 @@ use std::{sync::Arc, time::Duration};
 use tokio::sync::RwLock;
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
 use tracing::info;
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::EnvFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use util::Args;
@@ -30,17 +32,19 @@ struct AppState {
     preset: Preset,
 }
 
+const DEFAULT_LOG_LEVEL: LevelFilter = if cfg!(debug_assertions) {
+    LevelFilter::DEBUG
+} else {
+    LevelFilter::INFO
+};
+
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                format!(
-                    "{}=debug,tower_http=debug,axum=trace",
-                    env!("CARGO_CRATE_NAME")
-                )
-                .into()
-            }),
+            EnvFilter::builder()
+                .with_default_directive(DEFAULT_LOG_LEVEL.into())
+                .from_env_lossy(),
         )
         .with(tracing_subscriber::fmt::layer().without_time())
         .init();
