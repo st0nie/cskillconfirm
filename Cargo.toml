@@ -3,6 +3,18 @@ name = "cskillconfirm"
 version = "0.1.0"
 edition = "2024"
 
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+overflow-checks = false
+strip = true
+lto = true
+codegen-units = 1
+panic = 'abort'
+incremental = false
+rpath = false
+
 [dependencies]
 anyhow = "1.0.97"
 axum = "0.8.1"

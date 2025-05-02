@@ -30,7 +30,6 @@ struct AppState {
     preset: Preset,
 }
 
-
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::registry()
