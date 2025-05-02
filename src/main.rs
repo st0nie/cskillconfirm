@@ -49,7 +49,7 @@ async fn main() -> Result<()> {
     }
 
     // initialize the specified audio device
-    let output_stream = get_output_stream(&args.device);
+    let output_stream = get_output_stream(&args.device).context("failed to get output stream")?;
     let preset = Preset::try_from(args.preset.as_ref())
         .with_context(|| format!("failed to parse preset '{}'", &args.preset))?;
     info!("preset '{}' loaded successfully", &args.preset);

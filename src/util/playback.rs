@@ -1,3 +1,4 @@
+use anyhow::Result;
 use cpal::traits::{DeviceTrait, HostTrait};
 use rodio::{OutputStream, OutputStreamHandle};
 use tracing::{self, info, warn};
@@ -15,18 +16,18 @@ pub fn list_host_devices() {
 }
 
 // Get an `OutputStream` and `OutputStreamHandle` for a specific device
-pub fn get_output_stream(device_name: &str) -> (OutputStream, OutputStreamHandle) {
+pub fn get_output_stream(device_name: &str) -> Result<(OutputStream, OutputStreamHandle)> {
     if device_name == "default" {
-        return OutputStream::try_default().unwrap();
+        return Ok(OutputStream::try_default()?);
     }
     let host = cpal::default_host();
-    let devices = host.output_devices().unwrap();
+    let devices = host.output_devices()?;
     for device in devices {
         let dev: rodio::Device = device.into();
-        let dev_name: String = dev.name().unwrap();
+        let dev_name: String = dev.name()?;
         if dev_name == device_name {
             info!("Using device: {}", dev_name);
-            return OutputStream::try_from_device(&dev).unwrap();
+            return Ok(OutputStream::try_from_device(&dev)?);
         }
     }
     // If the specified device is not found, fall back to the default
@@ -34,5 +35,5 @@ pub fn get_output_stream(device_name: &str) -> (OutputStream, OutputStreamHandle
         "Specified device {} not found, using default output device.",
         device_name
     );
-    OutputStream::try_default().unwrap()
+    Ok(OutputStream::try_default()?)
 }
