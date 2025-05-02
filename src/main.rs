@@ -5,7 +5,7 @@ use axum::{Router, routing::post};
 use clap::Parser;
 use rodio::OutputStreamHandle;
 use std::{sync::Arc, time::Duration};
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -17,14 +17,19 @@ use anyhow::{Context, Result};
 use soundpack::Preset;
 use util::handler::{shutdown_signal, update};
 
-struct AppState {
+struct Mutable {
     steamid: String,
     ply_kills: u16,
     ply_hs_kills: u64,
+}
+
+struct AppState {
+    mutable: RwLock<Mutable>,
     stream_handle: OutputStreamHandle,
     args: Args,
     preset: Preset,
 }
+
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -53,17 +58,18 @@ async fn main() -> Result<()> {
     let preset = Preset::try_from(args.preset.as_ref())
         .with_context(|| format!("failed to parse preset '{}'", &args.preset))?;
     info!("preset '{}' loaded successfully", &args.preset);
-    info!("{:?}", preset);
     info!("variant: {}", args.variant.as_deref().unwrap_or("none"));
 
-    let app_state = Arc::new(Mutex::new(AppState {
-        steamid: "".into(),
-        ply_kills: 0,
-        ply_hs_kills: 0,
+    let app_state = Arc::new(AppState {
+        mutable: RwLock::new(Mutable {
+            steamid: "".into(),
+            ply_kills: 0,
+            ply_hs_kills: 0,
+        }),
         stream_handle: output_stream.1,
         args,
         preset,
-    }));
+    });
 
     let app = Router::new()
         .route("/", post(update))

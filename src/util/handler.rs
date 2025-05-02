@@ -1,13 +1,13 @@
 use std::{fs::File, io::BufReader, sync::Arc};
 
-use axum::{extract::State, Json};
+use axum::{Json, extract::State};
 use gsi_cs2::Body;
-use tokio::{signal, sync::Mutex};
+use tokio::{signal, stream, sync::Mutex};
 use tracing::info;
 
 use crate::AppState;
 
-pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Body>) {
+pub async fn update(State(app_state): State<Arc<AppState>>, data: Json<Body>) {
     let map = data.map.as_ref();
     let player_data = data.player.as_ref();
 
@@ -18,23 +18,28 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
     let ply = player_data.unwrap();
     let ply_state = ply.state.as_ref().unwrap();
 
-    let mut app_state = app_state.lock().await;
-
+    let binding = app_state.mutable.read().await;
     let current_kills = ply_state.round_kills;
-    let original_kills = app_state.ply_kills;
+    let original_kills = binding.ply_kills;
 
-    let origin_hs_kills = app_state.ply_hs_kills;
     let current_hs_kills = ply_state.round_killhs;
+    let origin_hs_kills = binding.ply_hs_kills;
 
-    let steamid = if let Some(name) = &ply.steam_id { name } else { "" };
-    let original_steamid = &app_state.steamid;
+    let original_steamid = binding.steamid.clone();
+    drop(binding);
+
+    let steamid = if let Some(name) = &ply.steam_id {
+        name
+    } else {
+        ""
+    };
 
     if current_kills > original_kills && (steamid == original_steamid || original_steamid == "") {
-        let args = app_state.args.to_owned();
-        let preset = app_state.preset.to_owned();
+        let app_state_clone = app_state.clone();
+        // Note: args access moved inside tokio::spawn
         let sound_num_max;
 
-        sound_num_max = preset.end;
+        sound_num_max = app_state.preset.end;
 
         let sound_num = if current_kills > sound_num_max {
             sound_num_max
@@ -42,13 +47,15 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
             current_kills
         };
 
-        let preset_name = args.preset.to_string();
-        let volume = args.volume;
-
-        let stream_handle = app_state.stream_handle.clone();
         tokio::spawn(async move {
+            let args = &app_state_clone.args;
+            let preset = &app_state_clone.preset;
+            let stream_handle = &app_state_clone.stream_handle;
+            let preset_name = args.preset.to_string();
+            let volume = args.volume;
+
             let (controller, mixer) = rodio::dynamic_mixer::mixer::<i16>(2, 44100);
-            let sink = rodio::Sink::try_new(&stream_handle).unwrap();
+            let sink = rodio::Sink::try_new(stream_handle).unwrap();
 
             let add_file_to_mixer = |file_name: &str| {
                 let file = File::open(file_name).unwrap();
@@ -103,9 +110,11 @@ pub async fn update(State(app_state): State<Arc<Mutex<AppState>>>, data: Json<Bo
         info!("player:{} kills:{}", steamid, current_kills);
     }
 
-    app_state.ply_kills = current_kills;
-    app_state.ply_hs_kills = current_hs_kills;
-    app_state.steamid = steamid.to_string();
+    let mut binding = app_state.mutable.write().await;
+
+    binding.ply_kills = current_kills;
+    binding.ply_hs_kills = current_hs_kills;
+    binding.steamid = steamid.to_string();
 }
 
 pub async fn shutdown_signal() {
