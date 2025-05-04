@@ -1,18 +1,124 @@
+use anyhow::{Context, Result};
 use std::{fs::File, io::BufReader, sync::Arc};
+use tokio::join;
 
-use axum::{Json, extract::State};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use gsi_cs2::Body;
+use thiserror::Error;
 use tokio::signal;
-use tracing::info;
+use tracing::{error, info};
 
 use crate::AppState;
 
-pub async fn update(State(app_state): State<Arc<AppState>>, data: Json<Body>) {
+#[derive(Error, Debug)]
+pub enum ApiError {}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> axum::response::Response {
+        StatusCode::INTERNAL_SERVER_ERROR.into_response()
+    }
+}
+
+async fn play_audio(
+    app_state_clone: Arc<AppState>,
+    sound_num: u16,
+    current_kills: u16,
+    origin_hs_kills: u64,
+    current_hs_kills: u64,
+    sound_num_max: u16,
+) -> Result<()> {
+    let args = &app_state_clone.args;
+    let preset = &app_state_clone.preset;
+    let stream_handle = &app_state_clone.stream_handle;
+    let preset_name = args.preset.to_string();
+    let volume = args.volume;
+
+    let (controller, mixer) = rodio::dynamic_mixer::mixer::<i16>(2, 44100);
+    let sink = rodio::Sink::try_new(stream_handle)?;
+
+    let add_file_to_mixer = async |file_name: &str| -> Result<()> {
+        let file =
+            File::open(file_name).with_context(|| format!("failed to open file: {}", file_name))?;
+        let source = rodio::Decoder::new(BufReader::new(file))
+            .with_context(|| format!("failed to decode file: {:?}", file_name))?;
+        controller.add(source);
+        Ok(())
+    };
+
+    let play_common = async || -> Result<()> {
+        if preset.has_common_headshot && current_hs_kills > origin_hs_kills {
+            add_file_to_mixer(&format!("sounds/{}/common_headshot.wav", preset_name)).await?
+        } else if preset.has_common {
+            add_file_to_mixer(&format!("sounds/{}/common.wav", preset_name)).await?
+        }
+        Ok(())
+    };
+
+    let play_headshot = async || -> Result<()> {
+        if preset.has_headshot && !args.no_voice && current_hs_kills == 1 && current_kills == 1 {
+            let file_path = if preset.has_variant && args.variant.is_some() {
+                format!(
+                    "sounds/{}_v_{}/headshot.wav",
+                    preset_name,
+                    args.variant.as_ref().unwrap()
+                )
+            } else {
+                format!("sounds/{}/headshot.wav", preset_name)
+            };
+            add_file_to_mixer(&file_path).await?
+        }
+        Ok(())
+    };
+
+    let play_voice = async || -> Result<()> {
+        if preset.has_voice
+            && !args.no_voice
+            && (current_kills >= preset.start || !preset.has_headshot)
+            && current_kills <= sound_num_max
+            || !preset.has_common
+        {
+            let file_path = if preset.has_variant && args.variant.is_some() {
+                format!(
+                    "sounds/{}_v_{}/{}.wav",
+                    preset_name,
+                    args.variant.as_ref().unwrap(),
+                    sound_num
+                )
+            } else {
+                format!("sounds/{}/{}.wav", preset_name, sound_num)
+            };
+            add_file_to_mixer(&file_path).await?;
+        }
+
+        Ok(())
+    };
+
+    let results = join!(play_common(), play_headshot(), play_voice());
+
+    sink.append(mixer);
+    sink.set_volume(volume);
+    sink.play();
+
+    let results = vec![results.0, results.1, results.2];
+    results.iter().for_each(|result| {
+        if let Err(e) = result {
+            error!("Error playing sound: {}", e);
+        }
+    });
+
+    sink.sleep_until_end();
+    Ok(())
+}
+
+pub async fn update(
+    State(app_state): State<Arc<AppState>>,
+    data: Json<Body>,
+) -> Result<StatusCode, ApiError> {
     let map = data.map.as_ref();
     let player_data = data.player.as_ref();
 
     if map.is_none() || player_data.is_none() {
-        return;
+        return Ok(StatusCode::OK);
     }
 
     let ply = player_data.unwrap();
@@ -28,11 +134,7 @@ pub async fn update(State(app_state): State<Arc<AppState>>, data: Json<Body>) {
     let original_steamid = binding.steamid.clone();
     drop(binding);
 
-    let steamid = if let Some(name) = &ply.steam_id {
-        name
-    } else {
-        ""
-    };
+    let steamid = ply.steam_id.as_deref().unwrap_or("");
 
     if current_kills > original_kills && (steamid == original_steamid || original_steamid == "") {
         let app_state_clone = app_state.clone();
@@ -48,64 +150,19 @@ pub async fn update(State(app_state): State<Arc<AppState>>, data: Json<Body>) {
         };
 
         tokio::spawn(async move {
-            let args = &app_state_clone.args;
-            let preset = &app_state_clone.preset;
-            let stream_handle = &app_state_clone.stream_handle;
-            let preset_name = args.preset.to_string();
-            let volume = args.volume;
+            let result = play_audio(
+                app_state_clone,
+                sound_num,
+                current_kills,
+                origin_hs_kills,
+                current_hs_kills,
+                sound_num_max,
+            )
+            .await;
 
-            let (controller, mixer) = rodio::dynamic_mixer::mixer::<i16>(2, 44100);
-            let sink = rodio::Sink::try_new(stream_handle).unwrap();
-
-            let add_file_to_mixer = |file_name: &str| {
-                let file = File::open(file_name).unwrap();
-                let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
-                controller.add(source);
-            };
-
-            if preset.has_common_headshot && current_hs_kills > origin_hs_kills {
-                add_file_to_mixer(&format!("sounds/{}/common_headshot.wav", preset_name));
-            } else if preset.has_common {
-                add_file_to_mixer(&format!("sounds/{}/common.wav", preset_name));
+            if result.is_err() {
+                error!("Failed to play audio: {}", result.unwrap_err());
             }
-
-            if preset.has_headshot && !args.no_voice && current_hs_kills == 1 && current_kills == 1
-            {
-                let file_path = if preset.has_variant && args.variant.is_some() {
-                    format!(
-                        "sounds/{}_v_{}/headshot.wav",
-                        preset_name,
-                        args.variant.as_ref().unwrap()
-                    )
-                } else {
-                    format!("sounds/{}/headshot.wav", preset_name)
-                };
-                add_file_to_mixer(&file_path);
-            }
-
-            if preset.has_voice
-                && !args.no_voice
-                && (current_kills >= preset.start || !preset.has_headshot)
-                && current_kills <= sound_num_max
-                || !preset.has_common
-            {
-                let file_path = if preset.has_variant && args.variant.is_some() {
-                    format!(
-                        "sounds/{}_v_{}/{}.wav",
-                        preset_name,
-                        args.variant.as_ref().unwrap(),
-                        sound_num
-                    )
-                } else {
-                    format!("sounds/{}/{}.wav", preset_name, sound_num)
-                };
-                add_file_to_mixer(&file_path);
-            }
-
-            sink.append(mixer);
-            sink.set_volume(volume);
-            sink.play();
-            sink.sleep_until_end();
         });
         info!("player:{} kills:{}", steamid, current_kills);
     }
@@ -115,6 +172,8 @@ pub async fn update(State(app_state): State<Arc<AppState>>, data: Json<Body>) {
     binding.ply_kills = current_kills;
     binding.ply_hs_kills = current_hs_kills;
     binding.steamid = steamid.to_string();
+
+    Ok(StatusCode::OK)
 }
 
 pub async fn shutdown_signal() {
