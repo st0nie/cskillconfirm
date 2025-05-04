@@ -165,7 +165,11 @@ pub async fn update(
                 error!("Failed to play audio: {}", result.unwrap_err());
             }
         });
-        info!("player:{} kills:{}", steamid, current_kills);
+        info!(
+            "player:{} kills:{}",
+            ply.name.as_deref().unwrap_or(""),
+            current_kills
+        );
     }
 
     let mut binding = app_state.mutable.write().await;
