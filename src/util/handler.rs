@@ -6,7 +6,7 @@ use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use gsi_cs2::Body;
 use thiserror::Error;
 use tokio::signal;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::AppState;
 
@@ -118,6 +118,7 @@ pub async fn update(
     let player_data = data.player.as_ref();
 
     if map.is_none() || player_data.is_none() {
+        warn!("map or player data is missing");
         return Ok(StatusCode::OK);
     }
 
