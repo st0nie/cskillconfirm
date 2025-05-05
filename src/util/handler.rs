@@ -1,6 +1,5 @@
 use anyhow::{Context, Result};
 use std::{fs::File, io::BufReader, sync::Arc};
-use tokio::join;
 
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use gsi_cs2::Body;
@@ -42,19 +41,19 @@ async fn play_audio(
         let source = rodio::Decoder::new(BufReader::new(file))
             .with_context(|| format!("failed to decode file: {:?}", file_name))?;
         controller.add(source);
-        Ok(())
+        anyhow::Ok(())
     };
 
-    let play_common = async || -> Result<()> {
+    let play_common = async  {
         if preset.has_common_headshot && current_hs_kills > origin_hs_kills {
             add_file_to_mixer(&format!("sounds/{}/common_headshot.wav", preset_name)).await?
         } else if preset.has_common {
             add_file_to_mixer(&format!("sounds/{}/common.wav", preset_name)).await?
         }
-        Ok(())
+        anyhow::Ok(())
     };
 
-    let play_headshot = async || -> Result<()> {
+    let play_headshot = async {
         if preset.has_headshot && !args.no_voice && current_hs_kills == 1 && current_kills == 1 {
             let file_path = if preset.has_variant && args.variant.is_some() {
                 format!(
@@ -67,10 +66,10 @@ async fn play_audio(
             };
             add_file_to_mixer(&file_path).await?
         }
-        Ok(())
+        anyhow::Ok(())
     };
 
-    let play_voice = async || -> Result<()> {
+    let play_voice = async  {
         if preset.has_voice
             && !args.no_voice
             && (current_kills >= preset.start || !preset.has_headshot)
@@ -90,16 +89,19 @@ async fn play_audio(
             add_file_to_mixer(&file_path).await?;
         }
 
-        Ok(())
+        anyhow::Ok(())
     };
 
-    let results = join!(play_common(), play_headshot(), play_voice());
+    let results = vec![
+        play_common.await,
+        play_headshot.await,
+        play_voice.await,
+    ];
 
     sink.append(mixer);
     sink.set_volume(volume);
     sink.play();
 
-    let results = vec![results.0, results.1, results.2];
     results.iter().for_each(|result| {
         if let Err(e) = result {
             error!("Error playing sound: {}", e);
