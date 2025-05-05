@@ -44,7 +44,7 @@ async fn play_audio(
         anyhow::Ok(())
     };
 
-    let play_common = async  {
+    let play_common = async {
         if preset.has_common_headshot && current_hs_kills > origin_hs_kills {
             add_file_to_mixer(&format!("sounds/{}/common_headshot.wav", preset_name)).await?
         } else if preset.has_common {
@@ -69,7 +69,7 @@ async fn play_audio(
         anyhow::Ok(())
     };
 
-    let play_voice = async  {
+    let play_voice = async {
         if preset.has_voice
             && !args.no_voice
             && (current_kills >= preset.start || !preset.has_headshot)
@@ -92,11 +92,7 @@ async fn play_audio(
         anyhow::Ok(())
     };
 
-    let results = vec![
-        play_common.await,
-        play_headshot.await,
-        play_voice.await,
-    ];
+    let results = vec![play_common.await, play_headshot.await, play_voice.await];
 
     sink.append(mixer);
     sink.set_volume(volume);
@@ -122,6 +118,18 @@ pub async fn update(
     if map.is_none() || player_data.is_none() {
         warn!("map or player data is missing");
         return Ok(StatusCode::OK);
+    }
+
+    if let Some(whitelist) = &app_state.args.steamid {
+        let steamid = player_data
+            .as_ref()
+            .unwrap()
+            .steam_id
+            .as_deref()
+            .unwrap_or("");
+        if steamid != whitelist {
+            return Ok(StatusCode::OK);
+        }
     }
 
     let ply = player_data.unwrap();
