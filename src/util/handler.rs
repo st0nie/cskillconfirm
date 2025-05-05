@@ -168,7 +168,7 @@ pub async fn update(
             }
         });
         info!(
-            "player:{} kills:{}",
+            "player: {}, kills: {}",
             ply.name.as_deref().unwrap_or(""),
             current_kills
         );
