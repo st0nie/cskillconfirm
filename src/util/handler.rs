@@ -4,12 +4,11 @@ use std::sync::Arc;
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use gsi_cs2::Body;
 use thiserror::Error;
-use tokio::signal;
 use tracing::{error, info, warn};
 
 use crate::soundpack::playback::play_audio;
 
-use crate::AppState;
+use super::state::AppState;
 
 #[derive(Error, Debug)]
 pub enum ApiError {}
@@ -101,28 +100,4 @@ pub async fn update(
     binding.steamid = steamid.to_string();
 
     Ok(StatusCode::OK)
-}
-
-pub async fn shutdown_signal() {
-    let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-    };
-
-    #[cfg(unix)]
-    let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
-
-    tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
-    }
 }

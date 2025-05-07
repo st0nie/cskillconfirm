@@ -3,7 +3,6 @@ mod util;
 
 use axum::{Router, routing::post};
 use clap::Parser;
-use rodio::OutputStreamHandle;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::RwLock;
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
@@ -11,26 +10,15 @@ use tracing::info;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use util::signal::shutdown_signal;
+use util::state::{AppState, Mutable};
 
 use util::Args;
 use util::playback::{get_output_stream, list_host_devices};
 
 use anyhow::{Context, Result};
 use soundpack::Preset;
-use util::handler::{shutdown_signal, update};
-
-struct Mutable {
-    steamid: String,
-    ply_kills: u16,
-    ply_hs_kills: u64,
-}
-
-struct AppState {
-    mutable: RwLock<Mutable>,
-    stream_handle: OutputStreamHandle,
-    args: Args,
-    preset: Preset,
-}
+use util::handler::update;
 
 const DEFAULT_LOG_LEVEL: LevelFilter = if cfg!(debug_assertions) {
     LevelFilter::DEBUG
