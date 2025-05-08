@@ -6,7 +6,7 @@ use gsi_cs2::Body;
 use thiserror::Error;
 use tracing::{error, info, warn};
 
-use crate::soundpack::playback::play_audio;
+use crate::soundpack::sound::play_audio;
 
 use super::state::AppState;
 
