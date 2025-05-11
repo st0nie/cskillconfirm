@@ -14,8 +14,7 @@ apk add --update --no-cache \
     gcc \
     g++ \
     linux-headers \
-    pkgconf \
-    alsa-lib-dev
+    pkgconf
 
 libtoolize --force --copy --automake
 aclocal
