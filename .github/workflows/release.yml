@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64-pc-windows-gnu]
+        target: [x86_64-pc-windows-gnu, x86_64-unknown-linux-musl]
     steps:
       - uses: actions/checkout@master
       - name: Compile and release
@@ -26,3 +26,4 @@ jobs:
           RUSTTARGET: ${{ matrix.target }}
           EXTRA_FILES: "README.md LICENSE sounds/*/*"
           TOOLCHAIN_VERSION: "nightly"
+          PRE_BUILD: ".github/workflows/pre.sh"
