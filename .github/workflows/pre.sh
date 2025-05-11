@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [[ "${RUSTTARGET}" != "x86_64-unknown-linux-musl" ]]; then
+    exit 0
+fi
+
 git clone https://github.com/alsa-project/alsa-lib.git --depth 1
 cd alsa-lib
 apk add --update --no-cache \
