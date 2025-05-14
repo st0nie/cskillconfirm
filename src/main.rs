@@ -44,6 +44,11 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
+    if args.list_presets {
+        soundpack::list()?;
+        return Ok(());
+    }
+
     // initialize the specified audio device
     let output_stream = get_output_stream(&args.device).context("failed to get output stream")?;
     let preset = Preset::try_from(args.preset.as_ref())

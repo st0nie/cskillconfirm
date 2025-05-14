@@ -23,4 +23,7 @@ pub struct Args {
     ///
     #[arg(short, long, default_value = "1.0")]
     pub volume: f32,
+    /// list all sound presets
+    #[arg(short = 'L', long, default_value = "false")]
+    pub list_presets: bool,
 }
