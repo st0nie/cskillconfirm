@@ -1,10 +1,9 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fs;
-use std::hash::Hash;
-use tracing::{debug, info};
+use tracing::info;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Preset {
