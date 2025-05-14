@@ -40,7 +40,7 @@ async fn main() -> Result<()> {
     let args = Args::parse();
 
     if args.list_devices {
-        list_host_devices();
+        list_host_devices()?;
         return Ok(());
     }
 
