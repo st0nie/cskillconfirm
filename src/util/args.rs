@@ -11,7 +11,7 @@ pub struct Args {
     /// disable voice for some presets
     #[arg(short, long, default_value = "false")]
     pub no_voice: bool,
-    /// sound preset to use (available: "valorant", "crossfire", "bf1", "bf1_special")
+    /// sound preset to use
     #[arg(short, long, default_value = "crossfire")]
     pub preset: String,
     /// play sound only for a specific steamid
