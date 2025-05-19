@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fs;
-use tracing::info;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Preset {
@@ -54,16 +53,14 @@ pub fn list() -> Result<()> {
     let mut keys: Vec<&String> = mp.keys().collect();
     keys.sort();
 
-    info!("Available presets and variants:");
-
     for key in keys {
         let variants = mp.get(key).unwrap();
         if variants.is_empty() {
-            info!("{}", key);
+            println!("{}", key);
             continue;
         }
 
-        info!("{}: [{}]", key, variants.join(", "));
+        println!("{}: [{}]", key, variants.join(", "));
     }
 
     Ok(())

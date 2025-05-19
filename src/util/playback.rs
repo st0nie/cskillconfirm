@@ -9,12 +9,11 @@ pub fn list_host_devices() -> Result<()> {
     let devices = host
         .output_devices()
         .context("unable to get output devices")?;
-    info!("Available output devices:");
 
     for device in devices {
         let dev: rodio::Device = device.into();
         let dev_name = dev.name().unwrap_or_default();
-        info!("{}", dev_name);
+        println!("{}", dev_name);
     }
 
     Ok(())
