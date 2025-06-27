@@ -12,7 +12,7 @@ This tool helps you confirm your Counter-Strike 2 kills.
 
 ## Game State Integration Setup
 
-1. Download the GSI configuration file from [here](https://github.com/sam-ai56/gsi-cs2-rs/blob/main/gsi_cfg/gamestate_integration_fast.cfg).
+1. Download the GSI configuration file from [here](https://github.com/st0nie/gsi-cs2-rs/blob/main/gsi_cfg/gamestate_integration_fast.cfg).
 
 2. Place this file in your CS2 configuration directory:
     - Windows: `C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\cfg\`
