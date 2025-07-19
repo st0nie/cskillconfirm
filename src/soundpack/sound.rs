@@ -92,9 +92,12 @@ pub async fn play_audio(
 
     let results = tasks.join_all().await;
 
-    sink.append(mixer);
-    sink.set_volume(volume);
-    sink.play();
+    tokio::task::spawn_blocking(move || {
+        sink.append(mixer);
+        sink.set_volume(volume);
+        sink.play();
+        sink.sleep_until_end();
+    });
 
     results.iter().for_each(|result| {
         if let Err(e) = result {
@@ -102,6 +105,5 @@ pub async fn play_audio(
         }
     });
 
-    sink.sleep_until_end();
     Ok(())
 }
