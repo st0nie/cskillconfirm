@@ -1,20 +1,18 @@
 use std::{fs::File, io::BufReader, sync::Arc};
 
 use anyhow::{Context, Result};
+use rodio::mixer;
 use tokio::task::JoinSet;
 use tracing::error;
 
 use crate::util::state::AppState;
 
-async fn add_file_to_mixer(
-    file_name: &str,
-    controller: &rodio::dynamic_mixer::DynamicMixerController<i16>,
-) -> Result<()> {
+async fn add_file_to_mixer(file_name: &str, mixer: &mixer::Mixer) -> Result<()> {
     let file =
-        File::open(file_name).with_context(|| format!("failed to open file: {}", file_name))?;
+        File::open(file_name).with_context(|| format!("failed to open file: {file_name}"))?;
     let source = rodio::Decoder::new(BufReader::new(file))
-        .with_context(|| format!("failed to decode file: {:?}", file_name))?;
-    controller.add(source);
+        .with_context(|| format!("failed to decode file: {file_name:?}"))?;
+    mixer.add(source);
     Ok(())
 }
 
@@ -32,32 +30,31 @@ pub async fn play_audio(
     let preset_name = Arc::new(args.preset.to_string());
     let volume = args.volume;
 
-    let (controller, mixer) = rodio::dynamic_mixer::mixer::<i16>(2, 44100);
-    let sink = rodio::Sink::try_new(stream_handle)?;
+    let mixer = stream_handle.mixer().to_owned();
 
     let mut tasks = JoinSet::new();
 
     let preset_name_clone = preset_name.clone();
-    let controller_clone = controller.clone();
+    let mixer_clone = mixer.clone();
     if preset.has_common_headshot && current_hs_kills > origin_hs_kills {
         tasks.spawn(async move {
             add_file_to_mixer(
-                &format!("sounds/{}/common_headshot.wav", preset_name_clone),
-                &controller_clone,
+                &format!("sounds/{preset_name_clone}/common_headshot.wav"),
+                &mixer_clone,
             )
             .await
         });
     } else if preset.has_common {
         tasks.spawn(async move {
             add_file_to_mixer(
-                &format!("sounds/{}/common.wav", preset_name_clone),
-                &controller_clone,
+                &format!("sounds/{preset_name_clone}/common.wav"),
+                &mixer_clone,
             )
             .await
         });
     }
 
-    let controller_clone = controller.clone();
+    let mixer_clone = mixer.clone();
     if preset.has_headshot && !args.no_voice && current_hs_kills == 1 && current_kills == 1 {
         let file_path = if preset.has_variant && args.variant.is_some() {
             format!(
@@ -66,9 +63,9 @@ pub async fn play_audio(
                 args.variant.as_ref().unwrap()
             )
         } else {
-            format!("sounds/{}/headshot.wav", preset_name)
+            format!("sounds/{preset_name}/headshot.wav")
         };
-        tasks.spawn(async move { add_file_to_mixer(&file_path, &controller_clone).await });
+        tasks.spawn(async move { add_file_to_mixer(&file_path, &mixer_clone).await });
     }
 
     if preset.has_voice
@@ -85,19 +82,20 @@ pub async fn play_audio(
                 sound_num
             )
         } else {
-            format!("sounds/{}/{}.wav", preset_name, sound_num)
+            format!("sounds/{preset_name}/{sound_num}.wav")
         };
-        tasks.spawn(async move { add_file_to_mixer(&file_path, &controller).await });
+        let mixer = mixer.clone();
+        tasks.spawn(async move { add_file_to_mixer(&file_path, &mixer).await });
     }
 
-    let results = tasks.join_all().await;
-
-    tokio::task::spawn_blocking(move || {
-        sink.append(mixer);
+    tokio::task::spawn_blocking(move|| {
+        let sink = rodio::Sink::connect_new(&mixer);
         sink.set_volume(volume);
         sink.play();
         sink.sleep_until_end();
     });
+
+    let results = tasks.join_all().await;
 
     results.iter().for_each(|result| {
         if let Err(e) = result {

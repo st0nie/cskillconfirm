@@ -19,7 +19,7 @@ impl TryFrom<&str> for Preset {
     type Error = anyhow::Error;
 
     fn try_from(preset_name: &str) -> Result<Self> {
-        let content = fs::read_to_string(format!("sounds/{}/info.json", preset_name))?;
+        let content = fs::read_to_string(format!("sounds/{preset_name}/info.json"))?;
         let preset: Preset = serde_json::from_str(&content)?;
         Ok(preset)
     }
@@ -39,7 +39,7 @@ pub fn list() -> Result<()> {
         let preset_name = preset[0].to_string();
         let variant = preset.get(1);
 
-        if mp.contains_key(preset_name.as_str()) == false {
+        if !mp.contains_key(preset_name.as_str()) {
             mp.insert(preset_name.clone(), vec![]);
         }
 
@@ -56,7 +56,7 @@ pub fn list() -> Result<()> {
     for key in keys {
         let variants = mp.get(key).unwrap();
         if variants.is_empty() {
-            println!("{}", key);
+            println!("{key}");
             continue;
         }
 

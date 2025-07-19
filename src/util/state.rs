@@ -1,4 +1,4 @@
-use rodio::OutputStreamHandle;
+use rodio::OutputStream;
 use tokio::sync::RwLock;
 
 use crate::soundpack::Preset;
@@ -13,7 +13,7 @@ pub struct Mutable {
 
 pub struct AppState {
     pub mutable: RwLock<Mutable>,
-    pub stream_handle: OutputStreamHandle,
+    pub stream_handle: OutputStream,
     pub args: Args,
     pub preset: Preset,
 }

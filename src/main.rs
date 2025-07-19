@@ -62,7 +62,7 @@ async fn main() -> Result<()> {
             ply_kills: 0,
             ply_hs_kills: 0,
         }),
-        stream_handle: output_stream.1,
+        stream_handle: output_stream,
         args,
         preset,
     });

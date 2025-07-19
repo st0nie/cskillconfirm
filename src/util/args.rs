@@ -20,7 +20,7 @@ pub struct Args {
     /// use variant of sound preset
     #[arg(long)]
     pub variant: Option<String>,
-    ///
+
     #[arg(short, long, default_value = "1.0")]
     pub volume: f32,
     /// list all sound presets
