@@ -17,7 +17,7 @@ rpath = false
 
 [dependencies]
 anyhow = "1.0.100"
-axum = "0.8.7"
+axum = "0.8.8"
 clap = { version = "4.5.53", features = ["derive"] }
 cpal = "0.16.0"
 gsi-cs2 = { git = "https://github.com/st0nie/gsi-cs2-rs.git" }
