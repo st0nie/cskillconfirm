@@ -1,27 +1,40 @@
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
+use anyhow::{Context, Result};
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::fs;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+use super::lua_script::LuaScript;
+
+/// Preset holds the loaded Lua script for a soundpack
 pub struct Preset {
-    pub has_variant: bool,
-    pub has_voice: bool,
-    pub has_common: bool,
-    pub has_headshot: bool,
-    pub has_common_headshot: bool,
-    pub start: u16,
-    pub end: u16,
+    pub lua_script: LuaScript,
+    pub preset_name: String,
+    pub master_name: String,
+    pub variant: Option<String>,
 }
 
-impl TryFrom<&str> for Preset {
-    type Error = anyhow::Error;
+impl Preset {
+    /// Load a preset from the sounds directory
+    /// For variants like "crossfire_v_fhd", loads Lua from master "crossfire"
+    pub fn load(preset_name: &str) -> Result<Self> {
+        // Check if this is a variant (format: master_v_variant)
+        let parts: Vec<&str> = preset_name.split("_v_").collect();
+        let (master_name, variant) = if parts.len() > 1 {
+            (parts[0], Some(parts[1..].join("_v_")))
+        } else {
+            (preset_name, None)
+        };
 
-    fn try_from(preset_name: &str) -> Result<Self> {
-        let content = fs::read_to_string(format!("sounds/{preset_name}/info.json"))?;
-        let preset: Preset = serde_json::from_str(&content)?;
-        Ok(preset)
+        // Load Lua script from master soundpack
+        let script_path = format!("sounds/{master_name}/sound.lua");
+        let lua_script = LuaScript::load(&script_path)
+            .with_context(|| format!("failed to load Lua script for preset '{preset_name}'"))?;
+
+        Ok(Self {
+            lua_script,
+            preset_name: preset_name.to_string(),
+            master_name: master_name.to_string(),
+            variant: variant.map(|s| s.to_string()),
+        })
     }
 }
 
