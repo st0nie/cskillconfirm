@@ -19,7 +19,7 @@ rpath = false
 anyhow = "1.0.100"
 axum = "0.8.7"
 clap = { version = "4.5.53", features = ["derive"] }
-cpal = "0.16.0"
+cpal = "0.17.0"
 gsi-cs2 = { git = "https://github.com/st0nie/gsi-cs2-rs.git" }
 rodio = "0.21.1"
 serde = { version = "1.0.228", features = ["derive"] }
@@ -29,3 +29,4 @@ tokio = { version = "1.48.0", features = ["rt-multi-thread", "macros", "full"] }
 tower-http = { version = "0.6.7", features = ["timeout", "trace"] }
 tracing = "0.1.43"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
+mlua = { version = "0.10", features = ["lua54", "vendored", "send", "serialize"] }

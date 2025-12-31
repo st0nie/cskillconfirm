@@ -1,6 +1,7 @@
 mod soundpack;
 mod util;
 
+use axum::http::StatusCode;
 use axum::{Router, routing::post};
 use clap::Parser;
 use std::{sync::Arc, time::Duration};
@@ -51,8 +52,8 @@ async fn main() -> Result<()> {
 
     // initialize the specified audio device
     let output_stream = get_output_stream(&args.device).context("failed to get output stream")?;
-    let preset = Preset::try_from(args.preset.as_ref())
-        .with_context(|| format!("failed to parse preset '{}'", &args.preset))?;
+    let preset = Preset::load(&args.preset)
+        .with_context(|| format!("failed to load preset '{}'", &args.preset))?;
     info!("preset '{}' loaded successfully", &args.preset);
     info!("variant: {}", args.variant.as_deref().unwrap_or("none"));
 
@@ -74,7 +75,7 @@ async fn main() -> Result<()> {
             TraceLayer::new_for_http(),
             // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
             // requests don't hang forever.
-            TimeoutLayer::new(Duration::from_secs(10)),
+            TimeoutLayer::with_status_code(StatusCode::REQUEST_TIMEOUT, Duration::from_secs(10)),
         ));
 
     // run our app with hyper, listening globally on port 3000
