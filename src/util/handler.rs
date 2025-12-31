@@ -58,27 +58,17 @@ pub async fn update(
 
     let steamid = ply.steam_id.as_deref().unwrap_or("");
 
-    if current_kills > original_kills && (steamid == original_steamid || original_steamid.is_empty()) {
+    if current_kills > original_kills
+        && (steamid == original_steamid || original_steamid.is_empty())
+    {
         let app_state_clone = app_state.clone();
-        // Note: args access moved inside tokio::spawn
-        
-
-        let sound_num_max = app_state.preset.end;
-
-        let sound_num = if current_kills > sound_num_max {
-            sound_num_max
-        } else {
-            current_kills
-        };
 
         tokio::spawn(async move {
             let result = play_audio(
                 app_state_clone,
-                sound_num,
                 current_kills,
                 origin_hs_kills,
                 current_hs_kills,
-                sound_num_max,
             )
             .await;
 
