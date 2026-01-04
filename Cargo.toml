@@ -19,7 +19,7 @@ rpath = false
 anyhow = "1.0.100"
 axum = "0.8.7"
 clap = { version = "4.5.53", features = ["derive"] }
-cpal = "0.16.0"
+cpal = "0.17.0"
 gsi-cs2 = { git = "https://github.com/st0nie/gsi-cs2-rs.git" }
 rodio = "0.21.1"
 serde = { version = "1.0.228", features = ["derive"] }
