@@ -1,7 +1,8 @@
-use std::{fs::File, io::BufReader, sync::Arc};
+use std::{io::BufReader, sync::Arc};
 
 use anyhow::{Context, Result};
 use rodio::mixer;
+use tokio::fs::File as TokioFile;
 use tokio::task::JoinSet;
 use tracing::{error, info};
 
@@ -9,9 +10,11 @@ use crate::soundpack::SoundContext;
 use crate::util::state::AppState;
 
 async fn add_file_to_mixer(file_name: &str, mixer: &mixer::Mixer) -> Result<()> {
-    let file =
-        File::open(file_name).with_context(|| format!("failed to open file: {file_name}"))?;
-    let source = rodio::Decoder::new(BufReader::new(file))
+    let file = TokioFile::open(file_name)
+        .await
+        .with_context(|| format!("failed to open file: {file_name}"))?;
+    let sync_file = file.into_std().await;
+    let source = rodio::Decoder::new(BufReader::new(sync_file))
         .with_context(|| format!("failed to decode file: {file_name:?}"))?;
     mixer.add(source);
     Ok(())
