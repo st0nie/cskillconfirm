@@ -29,4 +29,4 @@ tokio = { version = "1.49.0", features = ["rt-multi-thread", "macros", "full"] }
 tower-http = { version = "0.6.7", features = ["timeout", "trace"] }
 tracing = "0.1.43"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
-mlua = { version = "0.10", features = ["lua54", "vendored", "send", "serialize"] }
+mlua = { version = "0.11", features = ["lua54", "vendored", "send", "serialize"] }
