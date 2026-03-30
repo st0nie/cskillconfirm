@@ -23,8 +23,8 @@ function get_sounds(ctx)
         table.insert(sounds, base .. ctx.kill_count .. ".wav")
     end
     
-    -- Play headshot sound on first headshot kill from preset folder
-    if ctx.is_headshot and ctx.is_first_kill then
+    -- Play headshot sound on headshot kill from preset folder
+    if ctx.is_headshot then
         table.insert(sounds, base .. "headshot.wav")
     end
     
