@@ -3,7 +3,7 @@
 -- ctx.variant = nil for master, or "fhd"/"sex" for variants
 --
 -- Logic:
---   common.wav always from MASTER (sounds/crossfire/)
+--   common.wav from MASTER (sounds/crossfire/) only when no variant is active
 --   numbered + headshot from preset_name folder (variant or master)
 
 function get_sounds(ctx)
@@ -15,16 +15,19 @@ function get_sounds(ctx)
     -- Master base for common.wav
     local master_base = "sounds/" .. ctx.master_name .. "/"
     
-    -- Always play common sound from MASTER
-    table.insert(sounds, master_base .. "common.wav")
+    -- Play common sound from MASTER only when no variant is active
+    -- (variants provide their own numbered/headshot sounds and don't need the master base sound)
+    if ctx.variant == nil then
+        table.insert(sounds, master_base .. "common.wav")
+    end
     
     -- Play kill number sound (2-8) from preset folder
     if ctx.kill_count >= 2 and ctx.kill_count <= 8 then
         table.insert(sounds, base .. ctx.kill_count .. ".wav")
     end
     
-    -- Play headshot sound on headshot kill from preset folder
-    if ctx.is_headshot then
+    -- Play headshot sound on first headshot kill from preset folder
+    if ctx.is_headshot and ctx.is_first_kill then
         table.insert(sounds, base .. "headshot.wav")
     end
     
