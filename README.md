@@ -1,5 +1,11 @@
 # CS Kill Confirm
 
+> ## 🚧 Archived
+>
+> This project has been **archived** and is no longer actively developed.
+>
+> The functionality has been integrated into [CS2KillConfirmOverlay](https://github.com/eachkinji/CS2KillConfirmOverlay/). All future development happens there — please open issues and pull requests against that repository.
+
 This tool helps you confirm your Counter-Strike 2 kills.
 
 ## Installation
